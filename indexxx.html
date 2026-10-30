@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I See... Numbers Quiz!</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            background-color: #e0f7fa;
+            color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 700px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #d35400;
+        }
+
+        .stars {
+            color: #f1c40f;
+            text-shadow: 1px 1px 0px #d35400;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 5px solid #16a085;
+            border-radius: 25px;
+            padding: 30px;
+            width: 95%;
+            max-width: 700px;
+            box-shadow: 10px 10px 0px #16a085;
+            text-align: center;
+        }
+
+        .sentence {
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .ukr-hint {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .pictures-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .picture-box {
+            border: 4px dashed #bdc3c7;
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            font-size: 2.5rem;
+            line-height: 1.4;
+            transition: all 0.2s;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .picture-box:hover {
+            border-color: #16a085;
+            background-color: #e8f8f5;
+            transform: scale(1.02);
+        }
+
+        .empty-box {
+            font-size: 1.5rem;
+            color: #bdc3c7;
+            font-style: italic;
+        }
+
+        .correct {
+            background-color: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            border-style: solid !important;
+        }
+
+        .wrong {
+            background-color: #e74c3c !important;
+            border-color: #c0392b !important;
+            border-style: solid !important;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+            100% { transform: translateX(0); }
+        }
+
+        .pop-in {
+            animation: pop 0.3s ease-out;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .result-screen h2 {
+            font-size: 3rem;
+            color: #d35400;
+        }
+
+        .restart-btn {
+            font-family: inherit;
+            font-size: 1.8rem;
+            padding: 15px 30px;
+            margin-top: 20px;
+            border: 4px solid #c0392b;
+            border-radius: 15px;
+            background-color: #e74c3c;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0px 6px 0px #c0392b;
+        }
+
+        .restart-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0px 0px 0px #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div id="progress">Question 1 / 8</div>
+        <div class="stars" id="stars-display">⭐ 0</div>
+    </div>
+
+    <div class="card" id="quiz-card">
+        <div class="sentence" id="sentence-text"></div>
+        
+        <div class="pictures-container" id="pictures-container">
+            <!-- Picture boxes injected here -->
+        </div>
+    </div>
+
+    <div class="card result-screen" id="result-screen">
+        <h2 id="result-title">Awesome!</h2>
+        <div style="font-size: 4rem; margin: 20px 0;">🎉🎈🚀</div>
+        <p id="result-text" style="font-size: 1.5rem;"></p>
+        <button class="restart-btn" onclick="startGame()">Play Again! 🔄</button>
+    </div>
+
+    <script>
+        // The quiz data. Notice how "Zero" is heavily featured.
+        const questions = [
+            {
+                english: "I see three apples.",
+                ukrainian: "(Я бачу три яблука)",
+                options: ["🍎🍎🍎", "🍎", "🍎🍎🍎🍎🍎"],
+                answerIndex: 0
+            },
+            {
+                english: "I see zero cats.",
+                ukrainian: "(Я бачу нуль котів - їх немає!)",
+                options: ["🐱🐱", "(Нічого немає)", "🐱"],
+                answerIndex: 1
+            },
+            {
+                english: "I see five stars.",
+                ukrainian: "(Я бачу п'ять зірок)",
+                options: ["⭐⭐⭐", "⭐⭐⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"],
+                answerIndex: 2
+            },
+            {
+                english: "I see one big dog.",
+                ukrainian: "(Я бачу одного великого пса)",
+                options: ["🐶🐶🐶", "🐶", "(Нічого немає)"],
+                answerIndex: 1
+            },
+            {
+                english: "I see eight balloons.",
+                ukrainian: "(Я бачу вісім кульок)",
+                options: ["🎈🎈🎈🎈🎈🎈", "🎈🎈🎈🎈🎈🎈🎈🎈", "🎈🎈🎈🎈"],
+                answerIndex: 1
+            },
+            {
+                english: "I see zero pizzas.",
+                ukrainian: "(Я бачу нуль піц - сумно)",
+                options: ["🍕🍕", "🍕", "(Порожньо)"],
+                answerIndex: 2
+            },
+            {
+                english: "I see two frogs.",
+                ukrainian: "(Я бачу дві жаби)",
+                options: ["🐸🐸", "🐸🐸🐸", "🐸"],
+                answerIndex: 0
+            },
+            {
+                english: "I see ten cars.",
+                ukrainian: "(Я бачу десять машин)",
+                options: ["🚗🚗🚗🚗🚗", "🚗🚗🚗🚗🚗🚗🚗", "🚗🚗🚗🚗🚗🚗🚗🚗🚗🚗"],
+                answerIndex: 2
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let canClick = true;
+        let shuffledQuestions = [];
+
+        const sentenceText = document.getElementById('sentence-text');
+        const picturesContainer = document.getElementById('pictures-container');
+        const progressText = document.getElementById('progress');
+        const starsDisplay = document.getElementById('stars-display');
+        const quizCard = document.getElementById('quiz-card');
+        const resultScreen = document.getElementById('result-screen');
+
+        function startGame() {
+            // Shuffle questions so she doesn't memorize the order
+            shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+            
+            currentQuestion = 0;
+            score = 0;
+            quizCard.style.display = 'block';
+            resultScreen.style.display = 'none';
+            quizCard.classList.remove('pop-in');
+            void quizCard.offsetWidth; // trigger reflow
+            quizCard.classList.add('pop-in');
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            canClick = true;
+            const q = shuffledQuestions[currentQuestion];
+            
+            progressText.innerText = `Question ${currentQuestion + 1} / ${shuffledQuestions.length}`;
+            starsDisplay.innerText = `⭐ ${score}`;
+            
+            // Set the sentence
+            sentenceText.innerHTML = `"${q.english}"<span class="ukr-hint">${q.ukrainian}</span>`;
+            
+            picturesContainer.innerHTML = '';
+            
+            // Create the 3 picture buttons
+            q.options.forEach((option, index) => {
+                const box = document.createElement('div');
+                box.className = 'picture-box pop-in';
+                
+                // If the option is the "empty" text, style it differently
+                if (option.includes("Нічого") || option.includes("Порожньо")) {
+                    box.innerHTML = `<span class="empty-box">${option}</span>`;
+                } else {
+                    box.innerText = option;
+                }
+                
+                box.onclick = () => checkAnswer(index, q.answerIndex, box);
+                picturesContainer.appendChild(box);
+            });
+        }
+
+        function checkAnswer(selected, correct, boxElement) {
+            if (!canClick) return;
+            canClick = false;
+
+            if (selected === correct) {
+                boxElement.classList.add('correct');
+                score++;
+                starsDisplay.innerText = `⭐ ${score}`;
+                playSound(800, 0.15); // Happy ding
+                
+                setTimeout(() => {
+                    nextQuestion();
+                }, 900);
+            } else {
+                boxElement.classList.add('wrong');
+                playSound(150, 0.3); // Sad buzz
+                
+                // Briefly show where the right answer was
+                Array.from(picturesContainer.children).forEach((child, idx) => {
+                    if (idx === correct) {
+                        setTimeout(() => child.classList.add('correct'), 300);
+                    }
+                });
+
+                setTimeout(() => {
+                    nextQuestion();
+                }, 2000);
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < shuffledQuestions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizCard.style.display = 'none';
+            resultScreen.style.display = 'block';
+            resultScreen.classList.add('pop-in');
+            
+            document.getElementById('result-text').innerText = `You found ${score} out of ${shuffledQuestions.length} correct!`;
+            
+            if (score === shuffledQuestions.length) {
+                document.getElementById('result-title').innerText = "PERFECT SCORE! 👑";
+            } else if (score >= 5) {
+                document.getElementById('result-title').innerText = "Great job! 🌟";
+            } else {
+                document.getElementById('result-title').innerText = "Good try! Let's play again! 💪";
+            }
+        }
+
+        // Sound generator (no external files needed)
+        function playSound(freq, duration) {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = freq > 400 ? 'sine' : 'square'; // Square sounds funny for wrong answers
+                osc.frequency.value = freq;
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        // Start
+        startGame();
+    </script>
+</body>
+</html>
